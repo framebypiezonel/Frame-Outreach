@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frame — Outreach Pipeline</title>
+<style>
+:root{
+  --bg:#0F1012; --surface:#17181C; --surface2:#1E2025; --line:#2A2C33;
+  --ink:#F2F0EA; --muted:#8B8D94; --dim:#5A5C63;
+  --amber:#F5A524; --green:#4ADE80; --red:#F87171; --blue:#7DAFFF;
+  --serif:Georgia,'Times New Roman',serif; --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;padding-bottom:80px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+
+header{padding:34px 0 8px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600}
+h1{font-family:var(--serif);font-size:44px;font-weight:400;line-height:1.05;margin:6px 0 18px}
+h1 em{font-style:italic;color:var(--amber)}
+.statbar{display:flex;gap:0;border-top:1px solid var(--line);flex-wrap:wrap}
+.stat{flex:1;min-width:110px;padding:14px 16px 16px;border-right:1px solid var(--line)}
+.stat:last-child{border-right:none}
+.stat .n{font-family:var(--serif);font-size:30px;line-height:1}
+.stat .l{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+.stat.hot .n{color:var(--amber)}
+.stat.good .n{color:var(--green)}
+
+section{margin-top:34px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+h2{font-family:var(--serif);font-size:24px;font-weight:400}
+.sec-sub{color:var(--muted);font-size:12.5px}
+
+.batch{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;position:relative;cursor:pointer;transition:border-color .15s}
+.slot:hover{border-color:var(--dim)}
+.slot.due{border-color:var(--amber)}
+.slot.empty{border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:132px;color:var(--dim);font-size:12.5px;cursor:default}
+.slot .name{font-weight:600;font-size:14.5px;margin-bottom:2px;padding-right:26px}
+.slot .meta{font-size:11.5px;color:var(--muted)}
+.slot .stage-pill{margin-top:10px}
+.slot .clock{margin-top:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.slot .clock b{font-family:var(--serif);font-size:20px;font-weight:400}
+.slot.due .clock b{color:var(--amber)}
+.slot .fu{position:absolute;top:12px;right:12px;font-size:10.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+.slot .duebadge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;color:#000;background:var(--amber);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+.pill{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:2px 8px;border:1px solid var(--line);color:var(--muted)}
+.pill.tA{color:#000;background:var(--amber);border-color:var(--amber)}
+.pill.tB{color:var(--amber);border-color:var(--amber)}
+.pill.tC{color:var(--muted)}
+.st-backlog{color:var(--muted)}
+.st-research{color:var(--blue);border-color:var(--blue)}
+.st-spec{color:var(--blue);border-color:var(--blue)}
+.st-sent{color:var(--amber);border-color:var(--amber)}
+.st-followup{color:var(--amber);border-color:var(--amber)}
+.st-replied{color:var(--green);border-color:var(--green)}
+.st-call{color:var(--green);border-color:var(--green)}
+.st-won{color:#000;background:var(--green);border-color:var(--green)}
+.st-dead{color:var(--red);border-color:var(--red);opacity:.75}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.fbtn{background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans)}
+.fbtn.on{color:var(--ink);border-color:var(--ink)}
+
+.leads{display:flex;flex-direction:column;gap:8px}
+.lead{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lead.due{border-left:3px solid var(--amber)}
+.lead-row{display:grid;grid-template-columns:minmax(160px,1.6fr) 70px 110px 90px 90px auto;gap:10px;align-items:center;padding:12px 16px;cursor:pointer}
+.lead-row:hover{background:var(--surface2)}
+.lead .nm{font-weight:600;font-size:14px}
+.lead .nm a{color:var(--blue);text-decoration:none;font-size:12px;margin-left:6px}
+.lead .nm a:hover{text-decoration:underline}
+.lead .hd{font-size:11.5px;color:var(--muted)}
+.cell{font-size:12px;color:var(--muted)}
+.cell b{color:var(--ink);font-weight:600}
+.chev{color:var(--dim);justify-self:end;transition:transform .15s}
+.lead.open .chev{transform:rotate(90deg)}
+
+.detail{display:none;border-top:1px solid var(--line);padding:16px;background:var(--surface2)}
+.lead.open .detail{display:block}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.d-grid{grid-template-columns:1fr}}
+.d-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:600;margin-bottom:6px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button.act{background:var(--ink);color:#000;border:none;border-radius:7px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+button.act.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.act.warn{background:transparent;color:var(--red);border:1px solid var(--red)}
+button.act:hover{opacity:.85}
+select.stagesel{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:12.5px;font-family:var(--sans)}
+textarea.notes{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:7px;color:var(--ink);font-family:var(--sans);font-size:13px;padding:10px;min-height:84px;resize:vertical}
+input.linkinput{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:7px;color:var(--ink);font-family:var(--sans);font-size:12.5px;padding:8px 10px;margin-bottom:12px}
+.hist{list-style:none;max-height:170px;overflow-y:auto}
+.hist li{font-size:12px;padding:6px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+.hist li b{color:var(--ink);font-weight:500}
+.hist li:last-child{border-bottom:none}
+
+.addbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.addbar input{background:var(--surface);border:1px solid var(--line);border-radius:7px;color:var(--ink);padding:9px 12px;font-size:13px;font-family:var(--sans);flex:1;min-width:130px}
+.io{display:flex;gap:8px;margin-top:26px;justify-content:flex-end}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#000;font-weight:600;font-size:13px;padding:10px 20px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.toast.show{opacity:1}
+.rulecard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--muted);margin-top:14px}
+.rulecard b{color:var(--ink)}
+
+@media(max-width:760px){
+  .lead-row{grid-template-columns:1fr auto;grid-template-areas:"nm chev" "cells cells"}
+  .lead-row .nmwrap{grid-area:nm}
+  .chev{grid-area:chev}
+  .cellwrap{grid-area:cells;display:flex;gap:14px;flex-wrap:wrap}
+  h1{font-size:34px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Frame · Client Acquisition</div>
+  <h1>Outreach <em>pipeline</em></h1>
+  <div class="statbar" id="statbar"></div>
+</header>
+
+<section>
+  <div class="sec-head">
+    <h2>Active batch</h2>
+    <div class="sec-sub">Max <span id="capLabel">5</span> leads worked at once · full spec treatment · ~3 weeks or 3 follow-ups, then decide</div>
+  </div>
+  <div class="batch" id="batch"></div>
+  <div class="rulecard" id="rulecard"></div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>All leads</h2>
+    <div class="filters" id="filters"></div>
+  </div>
+  <div class="leads" id="leads"></div>
+  <div class="addbar">
+    <input id="addName" placeholder="Lead name">
+    <input id="addHandle" placeholder="Handle / channel">
+    <input id="addLink" placeholder="Link (YouTube / IG / site)">
+    <input id="addSubs" placeholder="Subs / followers" style="max-width:130px">
+    <select class="stagesel" id="addTier"><option value="A">Tier A</option><option value="B" selected>Tier B</option><option value="C">Tier C</option></select>
+    <button class="act" onclick="addLead()">Add lead</button>
+  </div>
+  <div class="io">
+    <button class="act ghost" onclick="syncNow()">↻ Sync now</button>
+    <button class="act ghost" onclick="exportJSON()">Export backup</button>
+    <button class="act ghost" onclick="document.getElementById('importFile').click()">Import backup</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+</section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BATCH_CAP = 5;
+const FOLLOWUP_GAP_DAYS = 4;
+const MAX_FOLLOWUPS = 3;
+const BATCH_WEEKS = 3;
+
+const STAGES = [
+  ['backlog','Backlog'],['research','Researching'],['spec','Spec ready'],
+  ['sent','Sent'],['followup','Following up'],['replied','Replied'],
+  ['call','Call booked'],['won','Won'],['dead','Dead']
+];
+const STAGE_LABEL = Object.fromEntries(STAGES);
+
+const now = () => new Date().toISOString();
+const daysSince = iso => iso ? Math.floor((Date.now() - new Date(iso).getTime())/86400000) : null;
+const uid = () => 'L' + Math.random().toString(36).slice(2,9);
+
+const SEED = [
+ /* ------- original YouTube batch ------- */
+ {name:'Run the Numbers',handle:'CJ Gustafson · Mostly Media',subs:'—',tier:'A',stage:'spec',inBatch:true,
+  link:'https://www.youtube.com/@RuntheNumberswithCJ',
+  notes:'PRIORITY. Full-time media founder (Mostly Media) since Jan 2025. Has incumbent production co — pitch as GROWTH LAYER (thumbnails + shorts → newsletter subs), not production replacement. Opener: $3–3.5k packaging tier, full-service $6k as upsell later. Reach: LinkedIn / newsletter reply / X @cjgustafson222.'},
+ {name:'The Driverless Digest',handle:'@The_Driverless_Digest',subs:'291',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@The_Driverless_Digest',
+  notes:'Original #1 cold target. CEO-level guests (Lyft CEO, Uber AV founding member, Zoox) with only 291 subs — massive content-to-packaging gap. Thumbnails are template-y. Full spec treatment when slot opens.'},
+ {name:'Antler Global',handle:'@AntlerGlobal',subs:'18.1K',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@AntlerGlobal',
+  notes:'Global VC firm, 838 videos, real marketing budget. Content is a marketing arm — pitch packaging/shorts as founder pipeline. Find head of content on LinkedIn, not generic inbox.'},
+ {name:'The Rollup',handle:'@TheRollupCo',subs:'23.4K',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@TheRollupCo',
+  notes:'Digital assets/finance media co. 1.5K videos, live shows — heavy cadence, media company mindset. Strong shorts opportunity from live content.'},
+ {name:'Rich Habits Podcast',handle:'@richhabitspodcast',subs:'11.9K',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@richhabitspodcast',
+  notes:'3 eps/week, 946 videos, iHeart distribution — monetized and volume-hungry. Great shorts-engine pitch.'},
+ {name:'Aleph',handle:'@aleph-vc · Invested pod',subs:'8.9K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@aleph-vc',
+  notes:'VC fund (Israel-focused), 443 videos. Their "Invested" pod already has decent thumbnails — pitch shorts velocity + consistency. Fund = budget exists.'},
+ {name:'Metis Strategy',handle:'@MetisStrategy',subs:'107K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@MetisStrategy',
+  notes:'Technovation pod. Likely established production — pitch is "level up", needs strongest spec work. Consulting firm = enterprise budget.'},
+ {name:'The Silicon Valley Podcast',handle:'@thesiliconvalleypodcast',subs:'4.96K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@thesiliconvalleypodcast',
+  notes:'Shawn Flynn, weekly. Solo host who self-promotes hard = feels the packaging burden. Approachable.'},
+ {name:'VC Lab',handle:'@vclabofficial',subs:'2.33K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@vclabofficial',
+  notes:'VC accelerator, 316 videos. Educational content underperforming its niche. Org has funding.'},
+ {name:'Upside Podcast',handle:'@UpsidePod · by SuperSeed',subs:'407',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@UpsidePod',
+  notes:'Tiny channel BUT backed by SuperSeed (VC fund). 316 videos of effort, no growth — textbook packaging pitch.'},
+ {name:'Imperfect Company',handle:'@ImperfectCompany · Glitch Capital',subs:'49',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@ImperfectCompany',
+  notes:'New founder-interview series by a VC fund. Fund-backed new shows need everything and decide fast.'},
+ {name:'Charles Cormier',handle:'@charlescormierpodcast',subs:'2.67K',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@charlescormierpodcast',
+  notes:'4K videos vs 2.67K subs = volume-over-quality operator. Unlikely to pay for taste.'},
+ {name:'This Week in Startups',handle:'@startups · Jason Calacanis',subs:'352K',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@startups',
+  notes:'Moonshot. Full in-house team. Only via warm referral after Frame has VC-space case studies.'},
+ {name:'18VC Podcast',handle:'@18VCPodcast',subs:'20',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@18VCPodcast',
+  notes:'Student pod. No budget. Portfolio-builder freebie at best.'},
+ {name:'Reframe First',handle:'@ReframeFirst',subs:'93',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@ReframeFirst',
+  notes:'340 videos, 93 subs. Effort without traction — likely budget-constrained.'},
+ {name:'MoneyNeverSleeps',handle:'@moneyneversleeps1814',subs:'139',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@moneyneversleeps1814',
+  notes:'Long-running weekly show, small channel. Uncertain budget.'},
+ {name:'Midnight Founders',handle:'@midnightfounderspodcast',subs:'48',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@midnightfounderspodcast',
+  notes:'Small founder-stories pod. Revisit later.'},
+ {name:"I Can't Believe It's Not Butter",handle:'@ICantBelieveItsNotButterICBINB',subs:'7',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@ICantBelieveItsNotButterICBINB',
+  notes:'Brand new VC-adjacent pod (3 videos). Check back in 2–3 months.'},
+ {name:'VC-A Podcasts',handle:'@VCAPodcasts',subs:'2',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@VCAPodcasts',
+  notes:'Advisory-firm interview series, minimal production intent. Skip.'},
+
+ /* ------- Instagram batch ------- */
+ {name:'Atlas Berry',handle:'@atlasberry008 · IG',subs:'250K',tier:'A',stage:'backlog',
+  link:'https://www.instagram.com/atlasberry008',
+  notes:'Finance/culture creator, reels hit 1.5–2M views. Has PUBLIC partnerships email: atlas@mightyjoy.com — already works with vendors. Solo creator at this scale = outsources. Pitch: consistent shorts/reels pipeline + repurposing.'},
+ {name:'RiskReversal Media',handle:'@RiskReversalMedia',subs:'133K',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@RiskReversalMedia',
+  notes:'Real media company (Dan Nathan/Guy Adami), 2.1K videos, daily market content. Heavy cadence + revenue. Pitch shorts velocity from daily shows.'},
+ {name:'Trading Places VC',handle:'@tradingvcs · IG',subs:'8K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/tradingvcs',
+  notes:'"Bad VC podcast about broken unicorns" — comedy angle, reels already hit 467K/14K. Two hosts, strong content instincts, small following. They GET shorts — pitch volume + YouTube expansion.'},
+ {name:'The Entrepreneur Experiment',handle:'@entrepreneurexperiment · Gary Fox',subs:'87.8K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/entrepreneurexperiment',
+  notes:'Irish founders pod, polished reels (8–23K views), monetized (stan.store). Established production quality — pitch is level-up + YouTube long-form growth.'},
+ {name:'Brendan Rogers / 2AM VC',handle:'@brendanprogers · IG',subs:'3.4K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/brendanprogers',
+  notes:'Co-founder 2AM VC — India-focused fund doing Indian entrepreneur pods. FUND BUDGET + INDIA ANGLE = warm-ish for Frame. Email button on profile. Strong first-call candidate.'},
+ {name:'Matt Forrest',handle:'@matt_forrest · IG/YT',subs:'53.4K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/matt_forrest',
+  notes:'Maps/data-viz educator, "new shorts every week", reels to 144K. Public email: matt@forrest.nyc. Solo creator with weekly shorts commitment = exactly the workload Frame removes. Data-viz overlap with Frame skills.'},
+ {name:'Going Direct',handle:'@goingdirect_',subs:'510',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@goingdirect_',
+  notes:'From original plan. 400 videos, 16–52 views each — huge effort/traction gap. Substack attached. Budget uncertain but pitch writes itself.'},
+ {name:'Kingscrowd',handle:'@Kingscrowd',subs:'932',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@Kingscrowd',
+  notes:'Private-markets intelligence company (funded product business). 457 videos, webinar-style content underperforming. Company budget + obvious packaging gap.'},
+ {name:'Foundersuite',handle:'@Foundersuite · How I Raised It',subs:'3.12K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@Foundersuite',
+  notes:'From original plan. SaaS company + podcast. Dated branding (5-yr-old welcome video) — pitch refresh + shorts. Company budget.'},
+ {name:'Slow Ventures',handle:'@Slow_Ventures',subs:'352',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@Slow_Ventures',
+  notes:'From original plan. Known VC brand, 160 videos, 116–330 views. Fund budget, tiny video traction. They even made a "creators need newsletters" episode — they think about content strategy.'},
+ {name:'Business Explains The World',handle:'@businessexplainstheworld · Dynamo',subs:'75.1K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/businessexplainstheworld',
+  notes:'Dynamo Media production — street-interview biz content. Has in-house producers (credited in reels) + partnerships email: partnerships@dynamomedia.com. Pitch overflow/scale work, not replacement.'},
+ {name:'Jack Orr',handle:'@jackorrofficial · IG',subs:'28.3K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/jackorrofficial',
+  notes:'Founder building stupidlyfit, one 704K reel. Content = his startup growth channel; solo founder budget unlikely for retainer. Maybe small project.'},
+ {name:'Coleman Hughes',handle:'Conversations with Coleman',subs:'—',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@ColemanHughesOfficial',
+  notes:'Presented by The Free Press = professional production + funded org, but that also means procurement via their team, not Coleman. Hard door. Park.'},
+ {name:'The Verge',handle:'@verge · IG',subs:'1.6M IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/verge',
+  notes:'Vox Media property. In-house video teams, vendor procurement process. Not a DM-able lead. Park.'},
+ {name:'JerryRigEverything',handle:'@zacksjerryrig · Zack Nelson',subs:'790K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/zacksjerryrig',
+  notes:'Massive established creator with settled workflow. Moonshot only via referral.'},
+ {name:'All-In Podcast',handle:'@theallinpod',subs:'160K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/theallinpod',
+  notes:'Moonshot. Full production operation. Park.'},
+ {name:'Peter Diamandis',handle:'@peterdiamandis',subs:'300K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/peterdiamandis',
+  notes:'Large operation (XPRIZE, Abundance) with existing media team. Moonshot via referral only.'},
+ {name:'20VC',handle:'@20vchq · Harry Stebbings',subs:'153K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/20vchq',
+  notes:'Moonshot. 20VC is a full media company with in-house team. The dream case-study client for year 2 — needs referral + track record.'},
+
+ /* ------- batch 3 ------- */
+ {name:'The Numbers Game',handle:'@thenumbersgamepodcast',subs:'1.23K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@thenumbersgamepodcast',
+  notes:'Australian finance/business pod, 2 hosts, 415 videos with 27–448 views — big effort/traction gap. Thumbnails are text-heavy DIY. Weekly cadence, professional hosts (likely advisors with revenue). Solid packaging pitch.'},
+ {name:'Fundstrat Direct',handle:'@fundstratdirect · IG',subs:'10.8K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/fundstratdirect',
+  notes:'Consumer arm of Fundstrat (Tom Lee) — real research firm with institutional revenue, pushing into retail via content. Company budget definitely exists; reels are clip-dumps with basic captions. Find their marketing lead, not the IG inbox.'},
+ {name:'Celastrina',handle:'@celastrinarebecka · IG',subs:'136K IG',tier:'B',stage:'backlog',
+  link:'https://www.instagram.com/celastrinarebecka',
+  notes:'OFF-NICHE (coaching/spirituality, not VC/finance). But: 136K followers, paid coaching programs, public email = real budget. Coaches spend on content. Take only if pipeline is dry — a win here doesn\'t build the VC case study Frame needs.'},
+ {name:'Shkreli World',handle:'@shkreliworld · IG',subs:'4.7K IG',tier:'C',stage:'backlog',
+  link:'https://www.instagram.com/shkreliworld',
+  notes:'Fan clip account monetizing via affiliate code — not a business that hires agencies. Skip; noted so it doesn\'t get re-added.'},
+
+ /* ------- batch 4 ------- */
+ {name:'How I Invest',handle:'@david_weisburd',subs:'15K',tier:'A',stage:'backlog',
+  link:'https://www.youtube.com/@david_weisburd',
+  notes:'David Weisburd — 948 videos, near-daily cadence, elite LP/VC guest list. Well-connected in exactly Frame\'s target niche = referral goldmine if won. Already decent packaging, so spec work must clearly beat current — pitch shorts velocity + thumbnail consistency at his volume.'},
+ {name:'Centimillionaire Strategies',handle:'@familyofficeclub · Richard Wilson',subs:'982K',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@familyofficeclub',
+  notes:'Family Office Club — real business (events, network) with serious budget, 982K subs. BUT 2.8K videos of volume-clip content suggests an established cheap pipeline; displacing it means proving quality lifts revenue. Big fish, uncertain door. Find their marketing lead.'},
+ {name:'Alpha Partners',handle:'@AlphaPartners',subs:'251',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@AlphaPartners',
+  notes:'Growth equity firm, 160 videos, 251 subs — fund budget with zero video traction. Same profile as Slow Ventures: pitch packaging as LP/founder-facing brand asset.'},
+ {name:'Money Moves Podcast',handle:'@TheMoneyMovesPod',subs:'59',tier:'B',stage:'backlog',
+  link:'https://www.youtube.com/@TheMoneyMovesPod',
+  notes:'Crypto/fintech pod, VC hosts (incl. Samantha Lewis). Professional banner = they care about brand; 59 subs after 69 videos = distribution failing. Fund-adjacent budget likely. Solid shorts pitch.'},
+ {name:'The Venture Capital Show',handle:'@TheVentureCapitalShow',subs:'6',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@TheVentureCapitalShow',
+  notes:'Brand new (12 videos, 6 subs) but has proper branding + website — someone invested in launch. Check back in 2 months: if still publishing, they need everything and have some budget.'},
+ {name:'Austin Chen',handle:'@akrolsmir',subs:'28',tier:'C',stage:'backlog',
+  link:'https://www.youtube.com/@akrolsmir',
+  notes:'Manifold Markets co-founder, 11 videos — personal channel, not a content operation. Skip.'}
+];
+
+let state = null;
+let EDITOR = '';
+let filterTier = 'ALL', filterStage = 'ALL';
+
+function newLead(o){
+  return Object.assign({
+    id:uid(), name:'', handle:'', subs:'—', tier:'B', stage:'backlog', link:'',
+    followUps:0, lastTouch:null, inBatch:false, batchStart:null,
+    notes:'', history:[{date:now(),action:'Added to pipeline'}]
+  }, o);
+}
+
+function mergeSeed(){
+  const names = new Set(state.leads.map(l=>l.name.toLowerCase().trim()));
+  let added = 0;
+  SEED.forEach(s=>{
+    const key = s.name.toLowerCase().trim();
+    if(!names.has(key)){
+      state.leads.push(newLead(Object.assign({}, s, s.inBatch ? {batchStart:now()} : {})));
+      added++;
+    } else {
+      const existing = state.leads.find(l=>l.name.toLowerCase().trim()===key);
+      if(existing && !existing.link && s.link) existing.link = s.link;
+      if(existing && (existing.subs==='—'||!existing.subs) && s.subs) existing.subs = s.subs;
+    }
+  });
+  return added;
+}
+
+const EDITOR_KEY = 'frame-editor-name';
+const API = '/api/leads';
+let backendOK = true;
+let pollTimer = null;
+
+async function apiGet(){
+  const res = await fetch(API, { cache: 'no-store' });
+  if(!res.ok) throw new Error('GET ' + res.status);
+  return res.json();
+}
+async function apiSave(data){
+  const res = await fetch(API, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if(!res.ok) throw new Error('PUT ' + res.status);
+}
+
+async function load(){
+  try{ EDITOR = localStorage.getItem(EDITOR_KEY) || ''; }catch(e){}
+  if(!EDITOR){
+    EDITOR = (prompt('Who is this? (name shows in lead history)','') || 'someone').trim() || 'someone';
+    try{ localStorage.setItem(EDITOR_KEY, EDITOR); }catch(e){}
+  }
+  try{
+    const data = await apiGet();
+    state = (data && Array.isArray(data.leads)) ? data : { leads: [] };
+    const added = mergeSeed();
+    render();
+    backendOK = true;
+    if(added) save();
+    startPolling();
+    return;
+  }catch(e){
+    console.error('load failed', e);
+    backendOK = false;
+  }
+  // Backend unreachable — render from the built-in seed list so the page still works,
+  // but nothing typed in this state will be saved anywhere.
+  state = { leads: [] };
+  mergeSeed();
+  render();
+  toast('Can’t reach the server — working offline, changes won’t be saved');
+}
+
+async function save(){
+  try{ await apiSave(state); backendOK = true; }
+  catch(e){
+    console.error('save failed', e);
+    backendOK = false;
+    toast('Save failed — check your connection');
+  }
+}
+
+async function syncNow(){
+  try{
+    const data = await apiGet();
+    if(data && Array.isArray(data.leads)) state = data;
+    mergeSeed(); render();
+    backendOK = true;
+    toast('Synced latest');
+  }catch(e){
+    console.error('sync failed', e);
+    backendOK = false;
+    toast('Sync failed — check your connection');
+  }
+}
+
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer = setInterval(async ()=>{
+    try{
+      const data = await apiGet();
+      if(data && Array.isArray(data.leads)) { state = data; render(); }
+      backendOK = true;
+    }catch(e){ backendOK = false; }
+  }, 20000);
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) syncNow(); });
+
+function isDue(l){
+  if(!['sent','followup'].includes(l.stage)) return false;
+  const d = daysSince(l.lastTouch);
+  return d !== null && d >= FOLLOWUP_GAP_DAYS;
+}
+
+function log(l, action){ l.history.unshift({date:now(), action: (EDITOR? EDITOR+': ' : '') + action}); }
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderStats(); renderBatch(); renderFilters(); renderLeads(); renderRule();
+}
+
+function renderStats(){
+  const L = state.leads;
+  const active = L.filter(l=>l.inBatch).length;
+  const sent = L.filter(l=>['sent','followup'].includes(l.stage)).length;
+  const replied = L.filter(l=>['replied','call'].includes(l.stage)).length;
+  const won = L.filter(l=>l.stage==='won').length;
+  const due = L.filter(isDue).length;
+  document.getElementById('statbar').innerHTML = `
+    <div class="stat"><div class="n">${L.filter(l=>!['won','dead'].includes(l.stage)).length}</div><div class="l">Open leads</div></div>
+    <div class="stat"><div class="n">${active}/${BATCH_CAP}</div><div class="l">In batch</div></div>
+    <div class="stat"><div class="n">${sent}</div><div class="l">Awaiting reply</div></div>
+    <div class="stat ${due?'hot':''}"><div class="n">${due}</div><div class="l">Follow-ups due</div></div>
+    <div class="stat good"><div class="n">${replied}</div><div class="l">Replied / call</div></div>
+    <div class="stat good"><div class="n">${won}</div><div class="l">Won</div></div>`;
+}
+
+function renderBatch(){
+  const el = document.getElementById('batch');
+  const inBatch = state.leads.filter(l=>l.inBatch);
+  let html = inBatch.map(l=>{
+    const d = daysSince(l.lastTouch);
+    const bd = daysSince(l.batchStart);
+    const due = isDue(l);
+    return `<div class="slot ${due?'due':''}" onclick="openLead('${l.id}')">
+      <div class="fu">${l.followUps}/${MAX_FOLLOWUPS} follow-ups</div>
+      <div class="name">${esc(l.name)}</div>
+      <div class="meta">${esc(l.subs)} subs · day ${bd??0} of batch</div>
+      <div class="stage-pill"><span class="pill st-${l.stage}">${STAGE_LABEL[l.stage]}</span>${due?'<span class="duebadge">DUE</span>':''}</div>
+      <div class="clock"><span style="color:var(--muted)">${l.lastTouch?'since last touch':'no touches yet'}</span><b>${d===null?'—':d+'d'}</b></div>
+    </div>`;
+  }).join('');
+  for(let i=inBatch.length;i<BATCH_CAP;i++)
+    html += `<div class="slot empty">Open slot — promote a lead</div>`;
+  el.innerHTML = html;
+  document.getElementById('capLabel').textContent = BATCH_CAP;
+}
+
+function renderRule(){
+  const overdue = state.leads.filter(l=>l.inBatch && daysSince(l.batchStart) > BATCH_WEEKS*7);
+  const maxed = state.leads.filter(l=>l.inBatch && l.followUps >= MAX_FOLLOWUPS && !['replied','call','won'].includes(l.stage));
+  let msg = `<b>The system:</b> a lead in the batch gets the full treatment — research, spec work (thumbnail redo + 1 short), send, then a follow-up every ${FOLLOWUP_GAP_DAYS}–5 days, max ${MAX_FOLLOWUPS}. After ${MAX_FOLLOWUPS} follow-ups or ${BATCH_WEEKS} weeks with no reply → mark <b>Dead</b> (revivable in 3 months) and promote the next lead. No lead leaves the batch by being forgotten — only by a decision.`;
+  if(maxed.length) msg += `<br><br>⚠ <b>${maxed.map(l=>esc(l.name)).join(', ')}</b> hit max follow-ups — decide: dead or one final different-channel attempt.`;
+  else if(overdue.length) msg += `<br><br>⚠ <b>${overdue.map(l=>esc(l.name)).join(', ')}</b> has been in the batch over ${BATCH_WEEKS} weeks — time to decide.`;
+  document.getElementById('rulecard').innerHTML = msg;
+}
+
+function renderFilters(){
+  const tiers = ['ALL','A','B','C'];
+  const stages = ['backlog','sent','followup','replied','won','dead'];
+  document.getElementById('filters').innerHTML =
+    tiers.map(t=>`<button class="fbtn ${filterTier===t?'on':''}" onclick="setF('tier','${t}')">${t==='ALL'?'All tiers':'Tier '+t}</button>`).join('') +
+    stages.map(s=>`<button class="fbtn ${filterStage===s?'on':''}" onclick="setF('stage','${s}')">${STAGE_LABEL[s]}</button>`).join('');
+}
+function setF(k,v){
+  if(k==='tier') filterTier = (filterTier===v?'ALL':v);
+  else filterStage = (filterStage===v?'ALL':v);
+  render();
+}
+
+function renderLeads(){
+  const order = {A:0,B:1,C:2};
+  const stOrder = Object.fromEntries(STAGES.map(([k],i)=>[k,i]));
+  let L = [...state.leads].sort((a,b)=>{
+    if(a.inBatch!==b.inBatch) return a.inBatch?-1:1;
+    if(order[a.tier]!==order[b.tier]) return order[a.tier]-order[b.tier];
+    return stOrder[b.stage]-stOrder[a.stage];
+  });
+  if(filterTier!=='ALL') L = L.filter(l=>l.tier===filterTier);
+  if(filterStage!=='ALL') L = L.filter(l=>l.stage===filterStage);
+
+  document.getElementById('leads').innerHTML = L.map(l=>{
+    const d = daysSince(l.lastTouch);
+    const due = isDue(l);
+    const linkTag = l.link ? `<a href="${esc(l.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">open ↗</a>` : '';
+    return `<div class="lead ${due?'due':''}" id="row-${l.id}">
+      <div class="lead-row" onclick="toggleLead('${l.id}')">
+        <div class="nmwrap"><div class="nm">${esc(l.name)} ${linkTag}</div><div class="hd">${esc(l.handle)}</div></div>
+        <div class="cellwrap" style="display:contents">
+          <div class="cell"><span class="pill t${l.tier}">Tier ${l.tier}</span></div>
+          <div class="cell"><span class="pill st-${l.stage}">${STAGE_LABEL[l.stage]}${due?' ·DUE':''}</span></div>
+          <div class="cell"><b>${esc(l.subs)}</b></div>
+          <div class="cell"><b>${l.followUps}</b> fu · ${d===null?'—':d+'d ago'}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>
+      <div class="detail">
+        <div class="actions">
+          ${l.inBatch
+            ? `<button class="act ghost" onclick="event.stopPropagation();demote('${l.id}')">Remove from batch</button>`
+            : `<button class="act" onclick="event.stopPropagation();promote('${l.id}')">→ Promote to batch</button>`}
+          <button class="act" onclick="event.stopPropagation();touch('${l.id}')">Log touch (sent / followed up)</button>
+          <select class="stagesel" onchange="setStage('${l.id}',this.value)" onclick="event.stopPropagation()">
+            ${STAGES.map(([k,v])=>`<option value="${k}" ${l.stage===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+          <button class="act warn" onclick="event.stopPropagation();markDead('${l.id}')">Mark dead</button>
+        </div>
+        <input class="linkinput" placeholder="Link (YouTube / IG / website)" value="${esc(l.link)}"
+          onchange="setLink('${l.id}',this.value)" onclick="event.stopPropagation()">
+        <div class="d-grid">
+          <div>
+            <div class="d-label">Notes / angle</div>
+            <textarea class="notes" onchange="setNotes('${l.id}',this.value)" onclick="event.stopPropagation()">${esc(l.notes)}</textarea>
+          </div>
+          <div>
+            <div class="d-label">History</div>
+            <ul class="hist">${l.history.map(h=>`<li><b>${new Date(h.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</b> — ${esc(h.action)}</li>`).join('')}</ul>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="rulecard">No leads match this filter.</div>`;
+}
+
+/* ---------- actions ---------- */
+const get = id => state.leads.find(l=>l.id===id);
+
+function toggleLead(id){ document.getElementById('row-'+id).classList.toggle('open'); }
+function openLead(id){
+  const r = document.getElementById('row-'+id);
+  if(r){ r.classList.add('open'); r.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+function promote(id){
+  if(state.leads.filter(l=>l.inBatch).length >= BATCH_CAP){ toast('Batch is full — finish or kill a lead first'); return; }
+  const l = get(id); l.inBatch = true; l.batchStart = now();
+  if(l.stage==='backlog') l.stage='research';
+  log(l,'Promoted to active batch'); save(); render(); toast(l.name+' → active batch');
+}
+function demote(id){
+  const l = get(id); l.inBatch=false; l.batchStart=null;
+  log(l,'Removed from batch'); save(); render();
+}
+function touch(id){
+  const l = get(id);
+  if(['sent','followup'].includes(l.stage)){
+    l.followUps++; l.stage='followup';
+    log(l,`Follow-up #${l.followUps} sent`);
+  } else {
+    l.stage = ['backlog','research','spec'].includes(l.stage) ? 'sent' : l.stage;
+    log(l,'Outreach sent');
+  }
+  l.lastTouch = now(); save(); render(); toast('Touch logged');
+}
+function setStage(id,st){
+  const l = get(id); l.stage = st;
+  log(l,'Stage → '+STAGE_LABEL[st]);
+  if(st==='won'||st==='dead'){ l.inBatch=false; l.batchStart=null; }
+  if(st==='replied'||st==='call') l.lastTouch = now();
+  save(); render();
+}
+function markDead(id){
+  const l = get(id);
+  setStage(id,'dead'); toast(l.name+' marked dead — revisit in ~3 months');
+}
+function setNotes(id,v){ get(id).notes=v; save(); }
+function setLink(id,v){ get(id).link=v.trim(); save(); render(); }
+
+function addLead(){
+  const n = document.getElementById('addName').value.trim();
+  if(!n){ toast('Name needed'); return; }
+  state.leads.push(newLead({
+    name:n,
+    handle:document.getElementById('addHandle').value.trim(),
+    link:document.getElementById('addLink').value.trim(),
+    subs:document.getElementById('addSubs').value.trim()||'—',
+    tier:document.getElementById('addTier').value
+  }));
+  ['addName','addHandle','addLink','addSubs'].forEach(i=>document.getElementById(i).value='');
+  save(); render(); toast('Lead added');
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'frame-outreach-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importJSON(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ state = JSON.parse(r.result); save(); render(); toast('Backup imported'); }catch(e){ toast('Invalid file'); } };
+  r.readAsText(f);
+}
+
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "frame-outreach-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frame outreach pipeline tracker with a shared Netlify Blobs backend.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
